@@ -144,8 +144,8 @@ void MainWindow::setupMainScreen() {
 
     // eseménykezelők hozzáadása a gombokhoz
     connect(sendButton, SIGNAL(clicked()), this, SLOT(sendButtonClicked()));
-
     connect(disconnectButton, SIGNAL(clicked()), this, SLOT(disconnect()));
+    connect(clientList, SIGNAL(itemClicked(QListWidgetItem*)), this, SLOT(onClientClicked(QListWidgetItem*)));
 
 
     topLayout->addWidget(messages);
@@ -189,7 +189,7 @@ void MainWindow::connectButtonClicked() {
     connect(ClientSocket, SIGNAL(readyRead()), this, SLOT(socketReadyRead()));
 }
 
-// amikor üzenetet szeretnénk küldeni
+// amikor üzenetet szeretnénk küldeni mindenkinek
 void MainWindow::sendButtonClicked() {
     QString temp = messageEdit->text();
     std::string message = temp.toStdString();
@@ -217,11 +217,12 @@ void MainWindow::socketReadyRead() {
         // amikor valaki csatlakozik
         case '0':
         {
+            // kivesszük a nevét a csomagból
             std::string clientName = "";
             for(std::string::size_type i = 1; i < packet.length(); ++i){
                 clientName += packet[i];
             }
-
+            // ha ez a név egyezik a miénkkel, azt jelenti, hogy most csatlakoztunk -> képernyőt váltunk
             if(QString::fromStdString(clientName) == this->clientName+'\0') {
                 clearLayout();
                 setupMainScreen();
@@ -231,29 +232,35 @@ void MainWindow::socketReadyRead() {
                 addClientItem(QString::fromStdString(clientName));
                 messages->setText(messages->toPlainText() + "\n'" + QString::fromStdString(clientName) + "' csatlakozott.");
             }
-
+            // hozzáadjuk a nevet a kliensek listájához
             clients.push_back(QString::fromStdString(clientName));
             break;
         }
+        // amikor valaki kilép
         case '1':
         {
+            // kivesszük a nevét a csomagból
             std::string client = "";
             for(std::string::size_type i = 1; i < packet.length(); ++i){
                 client += packet[i];
             }
+            // eltávolítjuk a gombot a nevével
             removeClientItem(QString::fromStdString(client));
             messages->setText(messages->toPlainText() + "\n'" + QString::fromStdString(client) + "' kilepett.");
+            // kivesszük a nevét a kliensek listájából
             std::vector<QString>::iterator position = std::find(clients.begin(), clients.end(), QString::fromStdString(client));
             if(position != clients.end()) {
                 clients.erase(position);
             }
             break;
         }
+        // ha mindenkinek küldés
         case '2':
         {
             std::string clientName = "";
             std::string message = "";
             std::string::size_type i;
+            // kivesszük a nevet a csomagból
             for (i = 1; i < packet.length(); ++i) {
                 if (packet[i] == '^') {
                     ++i;
@@ -261,7 +268,7 @@ void MainWindow::socketReadyRead() {
                 }
                 clientName += packet[i];
             }
-
+            // majd kivesszük az üzenetet
             for (std::string::size_type j = i; j < packet.length(); ++j) {
                 message += packet[j];
             }
@@ -277,6 +284,7 @@ void MainWindow::socketReadyRead() {
                               QString::fromStdString(message));
             break;
         }
+        // ha hibaüzenet érkezik, megjelenítjük
         case '3':
         {
             std::string error = "";
@@ -286,8 +294,10 @@ void MainWindow::socketReadyRead() {
             errorText->setText(QString::fromStdString(error));
             break;
         }
+        // ha a kliensek neveinek listája érkezik
         case '4':
         {
+            // a nevek '^' karakterrel vannak elválasztva, feldaraboljuk a csomagot
             std::string tempName = "";
             for (std::string::size_type i = 1; i < packet.length(); ++i) {
                 if(packet[i] == '^') {
@@ -295,6 +305,7 @@ void MainWindow::socketReadyRead() {
                     QString newClientName = QString::fromStdString(tempName);
                     clients.push_back(newClientName);
 
+                    // ha nem a saját nevünk, hozzáadunk egy gombot vele a kliensek listájához
                     if(newClientName != clientName) {
                         addClientItem(newClientName);
                     }
@@ -330,14 +341,80 @@ void MainWindow::addClientItem(QString name) {
 }
 
 void MainWindow::removeClientItem(QString name) {
-    qDebug() << clientList->count();
+
     for(int i=0; i<clientList->count(); ++i) {
         QListWidgetItem* temp = clientList->item(i);
-        qDebug() << name;
-        qDebug() << temp->text();
         if(temp->text() == name) {
             clientList->removeItemWidget(temp);
+            delete(temp);
             return;
         }
     }
+}
+
+void MainWindow::onClientClicked(QListWidgetItem* item) {
+    QString friendName = item->text();
+
+    QWidget* window = new QWidget();
+    setupPrivateWindow(window);
+
+    privateChat[friendName] = window;
+}
+
+void MainWindow::setupPrivateWindow(QWidget* window) {
+
+    QVBoxLayout* layout = new QVBoxLayout();
+    QHBoxLayout* tLayout = new QHBoxLayout();
+    QHBoxLayout* bLayout = new QHBoxLayout();
+    QTextEdit* privateMessages = new QTextEdit();
+    QLineEdit* privateMessageEdit = new QLineEdit();
+    QPushButton* privateSendButton = new QPushButton("Send");
+    QPushButton* privateExitButton = new QPushButton("Exit");
+
+
+    tLayout->setAlignment(Qt::AlignCenter);
+    bLayout->setAlignment(Qt::AlignCenter);
+
+
+    privateMessages->setEnabled(false);
+    privateMessages->setStyleSheet("color: white;"
+                            "font-size: 20px;"
+                            "border-radius: 8px;"
+                            "border: 1px solid white;");
+
+    privateMessageEdit->setPlaceholderText("Send a message...");
+    privateMessageEdit->setMinimumHeight(50);
+    privateMessageEdit->setStyleSheet("color:white;"
+                               "font-size: 16px;"
+                               "border-radius: 8px;"
+                               "border: 1px solid white;"
+                               "padding: 10px;");
+
+    QString buttonStyle = "color:white;"
+                          "background-color: darkRed;"
+                          "border: 1px solid black;"
+                          "border-radius: 8px;"
+                          "font-size: 16px;";
+
+    privateSendButton->setCursor(QCursor(Qt::PointingHandCursor));
+    privateSendButton->setMinimumSize(100, 35);
+    privateSendButton->setStyleSheet(buttonStyle);
+
+    privateExitButton->setMinimumSize(100, 35);
+    privateExitButton->setStyleSheet(buttonStyle);
+    privateExitButton->setCursor(QCursor(Qt::PointingHandCursor));
+
+    tLayout->addWidget(privateMessages);
+
+    bLayout->addWidget(privateMessageEdit);
+    bLayout->addWidget(privateSendButton);
+    bLayout->addWidget(privateExitButton);
+
+    layout->addLayout(tLayout);
+    layout->addLayout(bLayout);
+    window->setLayout(layout);
+
+    window->setStyleSheet("background-color:#333333");
+
+    window->show();
 }

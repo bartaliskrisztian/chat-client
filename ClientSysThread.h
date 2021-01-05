@@ -6,6 +6,8 @@
 #include "winsock2.h"
 #include <Ws2tcpip.h>
 #include <QTcpSocket>
+#include <QString>
+#include <QWindow>
 
 #pragma comment(lib, "ws2_32.lib")
 
@@ -15,8 +17,11 @@ class ClientSysThread : public SysThread
 {
 private:
     QTcpSocket *AcceptSocket;
+    QString clientName;
+    QString friendName;
+    QWindow* ui;
 public:
-    ClientSysThread(QTcpSocket*);
+    ClientSysThread(QTcpSocket*, QString, QString);
     virtual void run();
 };
 

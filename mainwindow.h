@@ -11,6 +11,8 @@
 #include <QLabel>
 #include <QListWidget>
 #include <vector>
+#include <QMap>
+
 
 
 QT_BEGIN_NAMESPACE
@@ -32,6 +34,8 @@ private:
     QString clientName;
     QWidget* mainWidget;
     std::vector<QString> clients;
+    QMap<QString, QWidget*> privateChat;
+
 
     QVBoxLayout* mainLayout;
     QHBoxLayout* topLayout;
@@ -55,6 +59,7 @@ private:
     void setupMainScreen();
     void addClientItem(QString);
     void removeClientItem(QString);
+    void setupPrivateWindow(QWidget*);
 
 private slots:
 
@@ -62,6 +67,7 @@ private slots:
     void sendButtonClicked();
     void socketReadyRead();
     void disconnect();
+    void onClientClicked(QListWidgetItem*);
 
 };
 #endif // MAINWINDOW_H
