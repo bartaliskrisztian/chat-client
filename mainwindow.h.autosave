@@ -60,7 +60,7 @@ private:
     void addClientItem(QString);
     void removeClientItem(QString);
     void setupPrivateWindow(QWidget*, QString);
-
+    
 private slots:
 
     void connectButtonClicked();

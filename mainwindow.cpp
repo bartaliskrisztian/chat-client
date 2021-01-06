@@ -356,12 +356,12 @@ void MainWindow::onClientClicked(QListWidgetItem* item) {
     QString friendName = item->text();
 
     QWidget* window = new QWidget();
-    setupPrivateWindow(window);
+    setupPrivateWindow(window, friendName);
 
     privateChat[friendName] = window;
 }
 
-void MainWindow::setupPrivateWindow(QWidget* window) {
+void MainWindow::setupPrivateWindow(QWidget* window, QString friendName) {
 
     QVBoxLayout* layout = new QVBoxLayout();
     QHBoxLayout* tLayout = new QHBoxLayout();
@@ -416,5 +416,10 @@ void MainWindow::setupPrivateWindow(QWidget* window) {
 
     window->setStyleSheet("background-color:#333333");
 
+    connect(privateSendButton, &QPushButton::clicked, this, [&](){
+        // TODO
+    });
+
     window->show();
 }
+
