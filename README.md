@@ -6,6 +6,7 @@
 * The user can chat with multiple users at the same time.
 * Each user has a unique nickname.
 * The message is wrapped in a packet with other informations, depending on the type of the message.
+* Server source code: https://github.com/bartaliskrisztian/chat-server
 
 ### Types of messages
 
